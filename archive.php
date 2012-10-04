@@ -1,4 +1,84 @@
-<?php get_header(); 
+<?php 	// get ID's
+
+bach_init();
+
+			$abierto = get_option('bach_open'); 
+			$open = get_cat_id($abierto);
+			$cerrado = get_option('bach_closed'); 
+			$closed = get_cat_id($cerrado);
+			$esperas = get_option('bach_wait'); 
+			$espera = get_cat_id($esperas);
+
+if( 'POST' == $_SERVER['REQUEST_METHOD'] && !empty( $_POST['action'] ) && $_POST['action'] == 'post' ) {
+	if ( ! is_user_logged_in() )
+		auth_redirect();
+
+	if( !current_user_can( 'publish_posts' ) ) {
+		wp_redirect( get_bloginfo( 'url' ) . '/' );
+		exit;
+	}
+
+	check_admin_referer( 'new-post' );  // This executes the post form. Status = open by default
+
+	$user_id		= $current_user->user_id;
+	$post_content	= $_POST['posttext'];
+	$tags			= $_POST['tags'];
+	$post_title    = strip_tags($_POST['postTitle']);
+	$estado = $open;
+	$prioridad = $_POST['prioridad'];
+	$proyecto = $_POST['proyecto'];
+	$usuario = $_POST['usuario']; 
+	$post_category = array($estado,$prioridad,$proyecto,$usuario);
+	global $wpdb;
+		$proyecto_nombre = $wpdb->get_var("SELECT name FROM wp_terms WHERE term_id = '$proyecto'");
+
+
+function generatePassword($length=9) {
+	$consonants = 'BDGHJLMNPQRSTVWXZ';
+	$numbers .= '123456789';
+	$password = '';
+	for ($i = 0; $i < 3; $i++) {
+			$password .= $consonants[(rand() % strlen($consonants))];
+		}
+	$password .= '-';
+	for ($i = 3; $i < $length; $i++) {
+			$password .= $numbers[(rand() % strlen($numbers))];
+		}
+	
+	return $password;
+}
+ 
+ 	$assigned = generatepassword(7);
+
+	$title = '#' . $assigned . ' ' . $post_title . ' ('. $proyecto_nombre . ')';
+
+
+
+		// if no category was selected, unset it & default will be used
+ /*       if ($post_category == '-1') {
+            unset($post_category);
+        } elseif ( isset($post_category) ) {
+           $post_category = array($post_category);
+        }
+*/
+
+
+	$post_id = wp_insert_post( array(	// Inserts the post with our options
+		'post_author'	=> $user_id,
+		'post_title'	=> $title,
+		'post_content'	=> $post_content,
+		'post_category' => $post_category,
+		'post_name'		=> $assigned,
+		'tags_input'	=> $tags,
+		'post_status'	=> 'publish'
+	) );
+
+	wp_notify_mail($title,$post_content,$post_category,$assigned);
+	wp_redirect( get_bloginfo( 'url' ) . '/' );
+	exit;
+}
+
+get_header( ); 
 
 $ifdone = $_COOKIE['muestradone'];
 
@@ -15,7 +95,11 @@ function nodone(){
 /*	end of cookie function	*/
 </script>
 
-
+<?php
+if( current_user_can( 'publish_posts' ) ) {
+	require_once dirname( __FILE__ ) . '/post-form.php';
+}
+?>
 
 
 <div id="main">
@@ -40,12 +124,7 @@ function nodone(){
 <?php } 
 
 	?>
-	
-	<!-- Con esto vemos las tareas pendientes o todas las tareas -->
-	
-	<div style="float:right;margin-top: -20px;padding-right:60px;"><h2><a class="rss" href="." onclick="done()">ver pendientes</a> <a class="rss" href="." onclick="nodone()">ver todos</a></h2>
-	<br> <?php if ($ifdone == 'si') {echo 'Mostrando pendientes';} else {echo 'Mostrando todos';} ?>
-</div><br />
+<div align="center"><strong><span style="font-size:22px;"> <a href="http://interno.mecus.es/informes/">PRIORIDAD</a> || <a href="http://interno.mecus.es/entrega/">FECHA ENTREGA</a> || <a href="http://interno.mecus.es/timeline/">TIMELINE</a> || <a href="http://interno.mecus.es/espera/">EN ESPERA</a> || <a href="http://interno.mecus.es/sin-fecha/">SIN FECHA</a></span> <br /> <span style="font-variant:small-caps;font-size:16px;"><a href="http://interno.mecus.es/category/abierto/">Abiertos</a> || <a href="http://interno.mecus.es/category/wait/">En Espera</a> || <a href="http://interno.mecus.es/category/done/">Cerrados</a> || <a href="http://interno.mecus.es/category/luis/">Luis</a> || <a href="http://interno.mecus.es/category/rocio/">Rocío</a> || <a href="http://interno.mecus.es/category/raven/">RaveN</a></span></strong></div>
 
 	
 	
@@ -76,7 +155,7 @@ function nodone(){
 			$proyecto = get_cat_id($proyectos);
 	
 				if ( get_root_category($category) == $proyecto ) {
-				    echo '<a href="'.get_bloginfo('url').'/?cat='.$category->cat_ID.'"><img src="'.trim(ereg_replace("</p>", "", category_description($category->cat_ID)),"<p>").'" alt="' . $category->cat_name . '" class="logo" height="48px" width="48px" style="float:right;" /><a>'; 
+				    echo '<a href="'.get_bloginfo('url').'/category/'.$category->slug.'"><img src="'.trim(ereg_replace("</p>", "", category_description($category->cat_ID)),"<p>").'" alt="' . $category->cat_name . '" class="logo" height="48px" width="48px" style="float:right;" /><a>'; 
 			} }
 ?>
 				
@@ -88,28 +167,54 @@ function nodone(){
 				<div class="post-tags">
 					Propiedades: 
 					<?php the_category(' • ','') ?>
+<?php if (!in_category('65')) :	?>
+	<?php $fecha_entrega = get_post_meta($post->ID, '_refactord-datepicker'); ?>
+	<?php if (!$fecha_entrega) { ?>
+				<script>
+			           jQuery(document).ready(function() {
+			           jQuery( "#fecha" ).datepicker({ firstDay: 1 });
+			           });
+			
+			    </script>
+			
+				<form id="add_date" name="add_date" method="post" action="<?php bloginfo( 'url' ); ?>/transfer/" style="float:right;">
+					<input type="hidden" name="action" value="add_date" />
+					<input type="text" id="fecha" name="fecha" value="" size="20" />
+					<input type="hidden" value="<?php echo $post->ID; ?>" name="transfer"/>
+					<input id="submit" type="submit" value="AÑADIR FECHA DE ENTREGA" style="margin-left: 30px;margin-bottom: 20px;" tabindex="27"/>
+				</form>		
+	<?php }else { 
+				$fecha_entrega = explode('/', $fecha_entrega[0]);
+				?> <?php echo '<div align="right"><big><strong>'.$fecha_entrega[1].'/'.$fecha_entrega[0].'/'.$fecha_entrega[2].'</strong></big></div>'; ?> 
+	<?php 	} ?>
+<?php endif; ?>
 				</div>
 
 				</div>
 				<div class="post-contenido">
 					<?php the_content('Leer el resto del art&iacute;culo &raquo;'); ?>
 				</div>
-			</div>
-<?php 
-$comments = get_comments('order=ASC&post_id='.$post->ID);
-if ($comments) :	?>
+<!-- Código para mostrar u ocultar los comentarios (javascript) -->
+
+
+<div id="show-comments" style="text-align:center;margin-bottom:15px;font-size:12px; background-color:#eee;"><a href="javascript:void(0);" onclick="js_toggle('comments-<?php the_ID(); ?>');"><?php _e( 'Mostrar comentarios', 'bach' ); ?> (<?php comments_number('0','1','%'); ?>)</p></a></div>
+
+<div id="comments-<?php the_ID(); ?>" style="display:none;">	
 <ul style="list-style-type:none;">
 
-<?php	foreach($comments as $comm) : ?>
+<?php 
+$comments = get_comments('order=ASC&post_id='.$post->ID);
+  foreach($comments as $comm) : ?>
 
 <li id="prologue-<?php the_ID(); ?>" class="comment<?php echo strtolower($comm->comment_author); ?>">
 <?php echo nl2br($comm->comment_content); ?>
 </li>
-
-<?  endforeach; ?>
+<?php endforeach; ?>
 </ul>
+</div> <!-- fin de comentarios -->
 
-<?	endif;	?>
+			</div>
+
 			<br /><br />
 			<?php }	?>		
 			
@@ -123,7 +228,7 @@ if ($comments) :	?>
 		</div>
 
 	<?php else : ?>
-
+	
 		<h2 class="center">No encontrado</h2>
 		<p class="center">Lo sentimos pero la p&aacute;gina que busca no ha sido encontrada.</p>
 		<?php include (TEMPLATEPATH . "/searchform.php"); ?>
@@ -132,7 +237,7 @@ if ($comments) :	?>
 			
 		</div>
 
-<?php get_sidebar(); ?>
+<?php //get_sidebar(); ?>
 
 <?php get_footer(); ?>
 

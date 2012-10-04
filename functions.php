@@ -1,6 +1,7 @@
 <?php
 add_filter( 'the_content', 'make_clickable' );
 
+
 function get_recent_post_ids( $return_as_string = true ) {
 	global $wpdb;
 
@@ -31,6 +32,24 @@ function get_recent_post_ids( $return_as_string = true ) {
 	}
 
 	return $ids;
+}
+
+
+function bach_init(){
+			$abierto = get_option('bach_open'); 
+			$open = get_cat_id($abierto);
+			$cerrado = get_option('bach_closed'); 
+			$closed = get_cat_id($cerrado);
+			$esperas = get_option('bach_wait'); 
+			$espera = get_cat_id($esperas);
+			$email_users = get_option('bach_emails');
+			$bach_users = get_option('bach_users');
+			$prioridades = get_option('bach_priorities'); 
+			$priorities = get_cat_id($prioridades);
+			$proyectos = get_option('bach_projects'); 
+			$proyecto = get_cat_id($proyectos);
+			$users = get_cat_id($bach_users);
+
 }
 
 function prologue_recent_projects_widget( $args ) {
@@ -383,9 +402,8 @@ foreach ($bach_pages_obj as $bach_page) {
 
 $other_entries = array("Seleccione un número:","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19");
 $categories_tmp = array_unshift($bach_categories, "Seleccione una categoría:");
-$bach_pages_tmp = array_unshift($bach_pages, "Seleccione una página:");
 
-// THIS IS THE DIFFERENT FIELDS
+// THESE ARE THE DIFFERENT FIELDS
 
 $options = array (
 
@@ -442,7 +460,13 @@ $options = array (
 						"id" => $shortname."_closed",
 						"std" => "Seleccione una categoría:",
 						"type" => "select",
-						"options" => $bach_categories)						
+						"options" => $bach_categories),
+						
+				array(	"name" => "Emails de envío",
+						"desc" => "Escriba aquí los correos a los que se notificarán los cambios del sistema.",
+						"id" => $shortname."_emails",
+						"std" => "",
+						"type" => "text"),												    						
 																														
 		  );
 
@@ -491,8 +515,8 @@ function bach_add_admin() {
 	}
 
 add_menu_page($themename." Opciones", $themename." Opciones", 'edit_themes', basename(__FILE__), 'bach_page');
-
 }
+
 
 function bach_page (){
 
@@ -648,6 +672,7 @@ function bach_page (){
 							
 							</table>	
 
+
 							<p class="submit">
 								<input name="save" type="submit" value="Guardar cambios" />    
 								<input type="hidden" name="action" value="save" />
@@ -658,6 +683,30 @@ function bach_page (){
 						<!--END: GENERAL SETTINGS-->						
              
             </form>
+
+<?php		
+	$bach_users = get_option('bach_users');
+	$users = get_cat_id($bach_users);
+ 	$categories = get_categories( 'child_of=' . $users ); 
+?>
+
+			<h3 class="title">Usuarios</h3>
+				<table class="maintable">
+				<?php foreach ( $categories as $category ) { ?>
+					<tr class="mainrow">
+
+
+						<td class="titledesc"><?php echo $category->name; ?></td>
+						<td class="forminp">
+		        			<input name="<?php echo $category->cat_ID; ?>" id="<?php echo $category->cat_ID; ?>" type="text" value="<?php get_option($category->name); ?>" />
+							<?php add_option($category->name, $value); ?>
+						</td>
+					</tr>
+					<?php } //end foreach ?> 
+
+				</table> 
+
+
 
 </div><!--wrap-->
 
@@ -720,6 +769,7 @@ function status( $term_id ){
 	$term_taxonomy_id = $wpdb->get_var("SELECT term_taxonomy_id FROM wp_term_taxonomy WHERE term_id = '$term_id'");
 	$objetos = $wpdb->get_col("SELECT object_id  FROM wp_term_relationships WHERE term_taxonomy_id = '$term_taxonomy_id'");
 	$cat = $wpdb->get_var("SELECT name FROM wp_terms WHERE term_id = '$term_id'");
+	$catslug = $wpdb->get_var("SELECT slug FROM wp_terms WHERE term_id = '$term_id'");
 	// Counter variable init
 	$closed = 0;
 	$wait = 0;
@@ -736,10 +786,123 @@ function status( $term_id ){
 		$wait = $wait + $contwait;
 	}
 	// Print tickets
-	echo '<a href="http://interno.mecus.es/?cat='.$term_id.'">' . $cat . '</a>  ';
+	echo '<a href="http://interno.mecus.es/category/'.$catslug.'">' . $cat . '</a>  ';
 	echo '<font color="green">('.$open.')</font> &nbsp; <font color="grey">('.$wait.')</font> &nbsp; <font color="red">('.$closed.')</font>';
 
 }
 
 
-	?>
+/* Creamos la función compleja que nos servirá para enviar los correos de notificación */
+
+function wp_notify_mail($title,$post_content,$post_category,$assigned){
+
+	global $current_user;
+	global $wpdb;
+
+		$user			= get_userdata( $current_user->ID );
+		$first_name		= attribute_escape( $user->first_name );
+
+		$abierto_cat = get_option('bach_open');
+		$abierto = get_cat_ID($abierto_cat);
+
+		$cerrado_cat = get_option('bach_closed');
+		$cerrado = get_cat_ID($cerrado_cat);
+
+		$wait_cat = get_option('bach_wait');
+		$wait = get_cat_ID($wait_cat);
+
+
+
+	foreach ($post_category as $category){
+		if ($category == $abierto){
+			$ticket = 'abierto';
+		}
+		if ($category == $cerrado){
+			$ticket = 'cerrado';
+		}
+		if ($category == $espera){
+			$ticket = 'puesto en espera';
+		}
+		$string = get_cat_name($category);
+		$stringtocat = '[' . $string . ']';
+		$categorias .= $stringtocat . ' ';
+	}
+	
+	$fecha_entrega = '<a href="'.get_bloginfo("url") . '/' . $assigned .  '/">AÑADIR FECHA DE ENTREGA</a>';
+	
+	$notify_message .= nl2br($post_content) . '<br /><br />';
+	$notify_message .= 'Ticket ' . $ticket . ' por ' . $first_name . '<br /><br />';
+	$notify_message .= 'Enlace: ' . get_bloginfo("url") . '/' . $assigned .  '/';
+	$notify_message .= '<br /><br /><strong>Fecha de entrega: ';
+	$notify_message .= '[' . $fecha_entrega . '] ';
+
+
+
+
+
+		$from = "From: Bach Mecus <bach@mecus.es>";
+		$message_headers = "MIME-Version: 1.0\n" . "$from\n" . "Content-Type: text/html; charset=\"" . get_option('blog_charset') . "\"\n";
+
+	$subject = $categorias . $title;
+
+	$emails = get_option('bach_emails');
+	$emails_array = explode(",", $emails);
+		
+		foreach ($emails_array as $email) {
+			wp_mail($email, $subject, $notify_message, $message_headers);
+		}
+
+}
+
+function wp_notify_comments($comment_id) {
+	global $wpdb;
+	
+	$comment = $wpdb->get_row("SELECT * FROM $wpdb->comments WHERE comment_ID='$comment_id' LIMIT 1");
+	$post = $wpdb->get_row("SELECT * FROM $wpdb->posts WHERE ID='$comment->comment_post_ID' LIMIT 1");
+	$term_taxonomy = $wpdb->get_col("SELECT term_taxonomy_id FROM $wpdb->term_relationships WHERE object_id='$post->ID' ORDER BY term_taxonomy_id DESC");
+	foreach ($term_taxonomy as $term_tax){
+		$term_id = $wpdb->get_var("SELECT term_id FROM $wpdb->term_taxonomy WHERE term_taxonomy_id = '$term_tax'");
+		$name = $wpdb->get_var("SELECT name FROM $wpdb->terms WHERE term_id = '$term_id'");
+		$categorias_cat .= '[' . $name . '] ';
+	}
+	$fecha_entrega = $wpdb->get_var("SELECT meta_value FROM $wpdb->postmeta WHERE post_id = '$post->ID' AND meta_key = '_refactord-datepicker'");
+	if (!$fecha_entrega) {
+		$fecha_entrega = 'SIN FECHA DE ENTREGA';
+	}else {
+		$fecha_entrega = explode('/', $fecha_entrega);
+		$fecha_entrega = $fecha_entrega[1].'/'.$fecha_entrega[0].'/'.$fecha_entrega[2];
+		$categorias_cat .= '[' . $fecha_entrega . '] ';
+	}
+
+			$notify_message .= '<strong>Fecha de entrega: ';
+			$notify_message .= '[' . $fecha_entrega . '] ';
+			$notify_message .= '</strong> <br/><br />';
+			$notify_message .= '<strong>Ticket principal: </strong><br/><br />';
+			$notify_message .= nl2br($post->post_content) . '<br /><hr>';
+			$notify_message .= sprintf( __('<strong>Comentario nuevo de %s:</strong>'), $comment->comment_author ) ;
+			$notify_message .= "<br /><br />" . nl2br($comment->comment_content) . "<br /><br />";
+			$notify_message .= sprintf( __('Enlace:  %1$s'), get_permalink($comment->comment_post_ID));
+	
+
+	$title = $post->post_title;
+	$subject = $categorias_cat . $title;
+
+		$from = "From: Bach Mecus <bach@mecus.es>";
+		$message_headers = "MIME-Version: 1.0\n" . "$from\n" . "Content-Type: text/html; charset=\"" . get_option('blog_charset') . "\"\n";
+		
+	$emails = get_option('bach_emails');
+	$emails_array = explode(",", $emails);
+		
+		foreach ($emails_array as $email) {
+			wp_mail($email, $subject, $notify_message, $message_headers);
+		}
+
+}
+
+
+/* Creamos ahora la función que nos notificará en los comentarios y al publicar */
+
+//add_action('wp_insert_post', 'wp_notify_mail'); // Esta función está llamada en index.php
+add_action('comment_post', 'wp_notify_comments');
+
+?>

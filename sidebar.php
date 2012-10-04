@@ -1,4 +1,3 @@
-
 <?php
 			$prioridades = get_option('bach_priorities'); 
 			$priorities = get_cat_id($prioridades);
@@ -12,6 +11,7 @@
 ?>
 
 <div id="sidebar">
+	<div style="float:left;"><?php include (TEMPLATEPATH . '/searchform.php'); ?></div>
 
 <ul>
 <?php 
@@ -74,7 +74,7 @@ global $wpdb;
 
    
 // Organización interna
-	echo '<div style="padding-bottom:10px;padding-top:10px;font-weight:bold;font-size:2em;"><strong>Organización interna</strong></div>';
+/*	echo '<div style="padding-bottom:10px;padding-top:10px;font-weight:bold;font-size:2em;"><strong>Organización interna</strong></div>';
 	$categories = $wpdb->get_col("SELECT term_id FROM wp_term_taxonomy WHERE parent = 143");
 	foreach ($categories as $cat) {
 		$estatus = status($cat);
@@ -104,9 +104,9 @@ global $wpdb;
 		}
 		echo '</div>';
 	}
-
+*/
 // Proyectos en desarrollo
-	echo '<div style="padding-bottom:10px;padding-top:10px;font-weight:bold;font-size:2em;"><strong>Proyectos en desarrollo</strong></div>';
+/*	echo '<div style="padding-bottom:10px;padding-top:10px;font-weight:bold;font-size:2em;"><strong>Desarrollo</strong></div>';
 	$categories = $wpdb->get_col("SELECT term_id FROM wp_term_taxonomy WHERE parent = 99");
 	foreach ($categories as $cat) {
 		$estatus = status($cat);
@@ -135,11 +135,11 @@ global $wpdb;
 			echo '</div>';
 		}
 		echo '</div>';
-	}
+	}*/
 
-// Presupuestos
-	echo '<div style="padding-bottom:10px;padding-top:10px;font-weight:bold;font-size:2em;"><strong>Presupuestos</strong></div>';
-	$categories = $wpdb->get_col("SELECT term_id FROM wp_term_taxonomy WHERE parent = 129");
+// Proyectos en mantenimiento
+/*	echo '<div style="padding-bottom:10px;padding-top:10px;font-weight:bold;font-size:2em;"><strong>Mantenimiento</strong></div>';
+	$categories = $wpdb->get_col("SELECT term_id FROM wp_term_taxonomy WHERE parent = 141");
 	foreach ($categories as $cat) {
 		$estatus = status($cat);
 		$berre = '<br />';
@@ -168,9 +168,9 @@ global $wpdb;
 		}
 		echo '</div>';
 	}
-
+*/
 // Proyectos cerrados
-	echo '<div style="padding-bottom:10px;padding-top:10px;font-weight:bold;font-size:2em;"><strong>Proyectos cerrados</strong></div>';
+/*	echo '<div style="padding-bottom:10px;padding-top:10px;font-weight:bold;font-size:2em;"><strong>Cerrados</strong></div>';
 	$categories = $wpdb->get_col("SELECT term_id FROM wp_term_taxonomy WHERE parent = 142");
 	foreach ($categories as $cat) {
 		$estatus = status($cat);
@@ -200,7 +200,7 @@ global $wpdb;
 		}
 		echo '</div>';
 	}
-
+*/
 
 ?>
 <br /><br />

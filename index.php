@@ -1,5 +1,7 @@
 <?php 	// get ID's
 
+bach_init();
+
 			$abierto = get_option('bach_open'); 
 			$open = get_cat_id($abierto);
 			$cerrado = get_option('bach_closed'); 
@@ -26,11 +28,30 @@ if( 'POST' == $_SERVER['REQUEST_METHOD'] && !empty( $_POST['action'] ) && $_POST
 	$prioridad = $_POST['prioridad'];
 	$proyecto = $_POST['proyecto'];
 	$usuario = $_POST['usuario']; 
+	$fecha = $_POST['fecha'];
 	$post_category = array($estado,$prioridad,$proyecto,$usuario);
 	global $wpdb;
 		$proyecto_nombre = $wpdb->get_var("SELECT name FROM wp_terms WHERE term_id = '$proyecto'");
 
-	$title = $post_title . ' ('. $proyecto_nombre . ')';
+
+function generatePassword($length=9) {
+	$consonants = 'BDGHJLMNPQRSTVWXZ';
+	$numbers .= '123456789';
+	$password = '';
+	for ($i = 0; $i < 3; $i++) {
+			$password .= $consonants[(rand() % strlen($consonants))];
+		}
+	$password .= '-';
+	for ($i = 3; $i < $length; $i++) {
+			$password .= $numbers[(rand() % strlen($numbers))];
+		}
+	
+	return $password;
+}
+ 
+ 	$assigned = generatepassword(7);
+
+	$title = '#' . $assigned . ' ' . $post_title . ' ('. $proyecto_nombre . ')';
 
 
 
@@ -48,10 +69,13 @@ if( 'POST' == $_SERVER['REQUEST_METHOD'] && !empty( $_POST['action'] ) && $_POST
 		'post_title'	=> $title,
 		'post_content'	=> $post_content,
 		'post_category' => $post_category,
+		'post_name'		=> $assigned,
 		'tags_input'	=> $tags,
 		'post_status'	=> 'publish'
 	) );
 
+	update_post_meta( $post_id, '_refactord-datepicker', $fecha );
+	wp_notify_mail($title,$post_content,$post_category,$assigned);
 	wp_redirect( get_bloginfo( 'url' ) . '/' );
 	exit;
 }
@@ -60,7 +84,7 @@ get_header( );
 
 ?>
 
- <br /><div style="text-align:center;"><a href="<?php bloginfo('url'); ?>/wp-admin/">Administración</a> || <a href="<?php bloginfo('url'); ?>/wp-admin/edit.php">Edición de posts</a> || <a href="<?php bloginfo('url'); ?>/wp-admin/post-new.php">Nuevo artículo</a></div>
+ <br /><div style="text-align:center;"><a href="<?php bloginfo('url'); ?>/wp-admin/">Administración</a> || <a href="<?php bloginfo('url'); ?>/wp-admin/edit.php">Edición de posts</a> || <a href="<?php bloginfo('url'); ?>/wp-admin/media-new.php"><b>Añadir a la biblioteca de medios</b></a></div>
 
 <?php
 if( current_user_can( 'publish_posts' ) ) {
@@ -69,14 +93,19 @@ if( current_user_can( 'publish_posts' ) ) {
 ?>
 
 <div id="main">
-	<h2>Últimos tickets <a class="rss" href="<?php bloginfo( 'rssdos_url' ); ?>">RSS</a></h2><div style="float:right;margin-top: -40px;padding-right:60px;"><?php include (TEMPLATEPATH . '/searchform.php'); ?></div>
 
+<div align="center"><strong><span style="font-size:22px;"> <a href="http://interno.mecus.es/informes/">PRIORIDAD</a> || <a href="http://interno.mecus.es/entrega/">FECHA ENTREGA</a> || <a href="http://interno.mecus.es/timeline/">TIMELINE</a> || <a href="http://interno.mecus.es/espera/">EN ESPERA</a> || <a href="http://interno.mecus.es/sin-fecha/">SIN FECHA</a></span> <br /> <span style="font-variant:small-caps;font-size:16px;"><a href="http://interno.mecus.es/category/abierto/">Abiertos</a> || <a href="http://interno.mecus.es/category/wait/">En Espera</a> || <a href="http://interno.mecus.es/category/done/">Cerrados</a> || <a href="http://interno.mecus.es/category/luis/">Luis</a> || <a href="http://interno.mecus.es/category/rocio/">Rocío</a> || <a href="http://interno.mecus.es/category/raven/">RaveN</a></span></strong></div>
 	<ul>
 
+        <?php if ( get_query_var( 'paged') ) $paged = get_query_var( 'paged' ); elseif ( get_query_var( 'page') ) $paged = get_query_var( 'page' ); else $paged = 1; ?>
+
 <?php
-      $paged = (get_query_var('paged')) ? get_query_var('paged') : 1;
 
+global $query_string;
+query_posts( $query_string . '&cat=-215,-65,-216&order=DESC&post_parent=0&paged='.$paged );
+//query_posts( array( 'cat' => -6,-216,-215, 'paged' => get_query_var('paged') ) );
 
+update_user_meta (1,'activo','8743');
 
 if( have_posts( ) ) {
 	?>	
@@ -88,10 +117,23 @@ if( have_posts( ) ) {
 		</div>
 <? 	
 	$previous_user_id = 0;
+	
+	$activo = get_user_meta(1,'activo',true);
+	
 	while( have_posts( ) ) {
 		the_post( );
 
+if (!in_category('216')) :
+
+			foreach((get_the_category()) as $category) { 
+	
+				if ( get_root_category($category) == $users ) {
+					$usuario = $category->slug;
+				} //endif 
+			} // end foreach
+
 ?>
+
 <?php 
 
 // if ( in_category( $closed ) && !is_single() ) continue; 
@@ -106,21 +148,23 @@ if( have_posts( ) ) {
 
 
 ?>
-<li id="prologue-<?php the_ID(); ?>" class="recuadro<?php if ( in_category( 58 ) ) { echo 'luis'; } elseif ( in_category( 57 ) ) { echo 'raven'; } elseif ( in_category( 144 ) ) { echo 'rocio'; } ?><?php if ( in_category( $espera ) ) { echo ' espera'; } ?>">
+
+
+<li id="prologue-<?php the_ID(); ?>" class="recuadro<?php if ( in_category( $closed )): echo 'closed'; else: echo $usuario; endif; ?><?php if ( in_category( $espera ) ) { echo ' espera'; } ?><?php if ($post->ID == $activo) echo ' activo'; ?>">
+
+
 
 
 
 <?php
-		
-
 		// Show the new category images
-
-			foreach((get_the_category()) as $category) { 
 			$proyectos = get_option('bach_projects'); 
 			$proyecto = get_cat_id($proyectos);
+
+			foreach((get_the_category()) as $category) { 
 	
 				if ( get_root_category($category) == $proyecto ) {
-				    echo '<a href="'.get_bloginfo('url').'/?cat='.$category->cat_ID.'"><img src="'.trim(ereg_replace("</p>", "", category_description($category->cat_ID)),"<p>").'" alt="' . $category->cat_name . '" class="logo" height="48px" width="48px" style="float:right;" /><a>'; 
+				    echo '<a href="'.get_bloginfo('url').'/category/'.$category->slug.'"><img src="'.trim(ereg_replace("</p>", "", category_description($category->cat_ID)),"<p>").'" alt="' . $category->cat_name . '" class="logo" height="48px" width="48px" style="float:right;" /><a>'; 
 			} }
 
 
@@ -133,15 +177,47 @@ if( have_posts( ) ) {
 	<h4>
 		<span class="meta">
 			Categorías: <?php the_category(' • ','') ?>
+
+<?php if (!in_category('65')) :	?>
+	<?php $fecha_entrega = get_post_meta($post->ID, '_refactord-datepicker'); ?>
+	<?php if (!$fecha_entrega) { ?>
+				<script>
+			           jQuery(document).ready(function() {
+			           jQuery( "#fecha" ).datepicker({ firstDay: 1 });
+			           });
+			
+			    </script>
+			
+				<form id="add_date" name="add_date" method="post" action="<?php bloginfo( 'url' ); ?>/transfer/" style="float:right;">
+					<input type="hidden" name="action" value="add_date" />
+					<input type="text" id="fecha" name="fecha" value="" size="20" />
+					<input type="hidden" value="<?php echo $post->ID; ?>" name="transfer"/>
+					<input id="submit" type="submit" value="AÑADIR FECHA DE ENTREGA" style="margin-left: 30px;margin-bottom: 20px;" tabindex="27"/>
+				</form>		
+	<?php }else { 
+				$fecha_entrega = explode('/', $fecha_entrega[0]);
+				?> <?php echo '<div align="right"><big><strong>'.$fecha_entrega[1].'/'.$fecha_entrega[0].'/'.$fecha_entrega[2].'</strong></big></div>'; ?> 
+	<?php 	} ?>
+<?php endif; ?>
 		</span>
 	</h4>
 	<div class="postcontent">
 		<?php the_content( __( '(More ...)' ) ); ?>
-	<div style="float:right; margin-top:-25px;">	<?php edit_post_link( __( 'modificar' ) ); ?></div>
+	
+	
+	
 	</div> <!-- // postcontent -->
 
-</li>
+
+
+<!-- Código para mostrar u ocultar los comentarios (javascript) -->
+
+
+<div id="show-comments" style="text-align:center;margin-bottom:15px;font-size:12px; background-color:#eee;"><a href="javascript:void(0);" onclick="js_toggle('comments-<?php the_ID(); ?>');"><?php _e( 'Mostrar comentarios', 'bach' ); ?> (<?php comments_number('0','1','%'); ?>)</p></a></div>
+
+<div id="comments-<?php the_ID(); ?>" style="display:none;">	
 <ul style="list-style-type:none;">
+
 <?php 
 $comments = get_comments('order=ASC&post_id='.$post->ID);
   foreach($comments as $comm) : ?>
@@ -149,28 +225,53 @@ $comments = get_comments('order=ASC&post_id='.$post->ID);
 <li id="prologue-<?php the_ID(); ?>" class="comment<?php echo strtolower($comm->comment_author); ?>">
 <?php echo nl2br($comm->comment_content); ?>
 </li>
-
 <?php endforeach; ?>
 </ul>
-<?php
+</div> <!-- fin de comentarios -->
+
+<?php $hijos = $wpdb->get_results( "SELECT * FROM $wpdb->posts WHERE post_parent = '$post->ID' AND post_type = 'post' AND post_status='publish'" ); ?>
 	
+	<div class="hijos" style="background-color:white;margin-left:50px;">
+		<ul>
+		<?php foreach ( $hijos as $hijo ){ 	
+				$ticketcerrado = $wpdb->get_var( "SELECT COUNT(*) FROM $wpdb->term_relationships WHERE object_id = '$hijo->ID' AND term_taxonomy_id = '66'" );	
+				if ( $ticketcerrado == '0' ) {	?>
+					<li><a href="<?php echo $hijo->guid; ?>"><?php echo $hijo->post_title; ?></a></li>
+			<?	}
+			}	?>
+		</ul>
+	</div>
+					
+		
+		
+
+</li>
+
+
+<?php
+
+endif;	
 	} // while have_posts
 	?>	<div class="navigation">
     <?php
     if(function_exists('pagination'))
         pagination(2,array("&#8592; m&#225;s recientes"," m&#225;s antiguas &#8594;"));
     ?>
-		</div>
+		</div>				
+
 <?
 
 } // if have_posts
 ?>
-
+<?php wp_reset_query(); // reset the query ?>
 	</ul>
 
 </div> <!-- // main -->
 
 <?php
 
-get_sidebar();
+//get_sidebar();
 get_footer( );
+
+?>
+

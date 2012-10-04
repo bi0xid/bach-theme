@@ -1,3 +1,7 @@
+<?php // Error reporting:
+error_reporting(0);
+date_default_timezone_set('Europe/Madrid');
+?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" 
  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" <?php language_attributes(); ?>>
@@ -10,6 +14,20 @@
 		<link rel="pingback" href="<?php bloginfo('pingback_url'); ?>" />
 		<link rel="shortcut icon" href="<?php bloginfo('template_url'); ?>/i/favicon.ico" type="image/x-icon" />
 		<script type='text/javascript' src='http://interno.mecus.es/wp-admin/js/post.js'></script>
+		<script type='text/javascript' src='http://interno.mecus.es/wp-content/themes/bach/bach.js'></script>
+
+
+<script type='text/javascript' src='http://interno.mecus.es/wp-includes/js/l10n.js?ver=20101110'></script>
+<script type='text/javascript' src='http://interno.mecus.es/wp-admin/load-scripts.php?c=1&amp;load=jquery,utils&amp;ver=fb5c271ac01e8186b23ece33d5ce4961'></script>
+<link rel='stylesheet' id='datepicker-css-css'  href='http://interno.mecus.es/wp-content/plugins/refactord-datepicker/css/jquery-ui-1.8.13.custom.css?ver=3.2.1' type='text/css' media='all' />
+<script type='text/javascript' src='http://interno.mecus.es/wp-content/plugins/refactord-datepicker/js/jquery-ui-1.8.13.custom.min.js?ver=3.2.1'></script>
+<script type="text/javascript">
+
+$(function() {
+  $('li.activo').animatedBorder({size : 6, color : '#FFCC66'});
+});
+
+</script>
 
 		<?php wp_head(); ?>
 
@@ -90,23 +108,26 @@ body {
 }
 </style>
 <?php } ?>
+
 	</head>
 <body>
 
+
+
+
 <div id="wrapper">
 
-<a href="<?php bloginfo( 'url' ); ?>/"><img src="<?php echo get_option('bach_logo'); ?>" /></a>
+<div style="float:left;"><a href="<?php bloginfo( 'url' ); ?>/listado-natural/"><img src="<?php echo get_option('bach_logo'); ?>" /></a></div>
+<?php if (is_home()) echo '<br style="clear:both;" />'; ?>
 <?php
 $image = get_header_image( );
 if( preg_match( '|there-is-no-image.jpg$|', $image ) !== 1 ) {
 ?>
 
-<div id="header_img">
-<img src="<?php echo $image; ?>" width="726" height="150" alt="" />
-</div>
-
+		<div id="header_img">
+			<img src="<?php echo $image; ?>" width="726" height="150" alt="" />
+		</div>
 
 <?php
 } // if header image
 ?>
-<br style="clear:both;">

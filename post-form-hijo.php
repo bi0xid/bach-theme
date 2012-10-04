@@ -1,3 +1,9 @@
+<script>
+                        jQuery(document).ready(function() {
+                                jQuery( "#datepicker-field" ).datepicker();
+                        });
+                    </script>
+
 <?php
 		// Get ID's
 	
@@ -16,7 +22,9 @@
 ?>
 <div align="center">
 <div id="postbox">
-	<form id="new_post" name="new_post" method="post" action="<?php bloginfo( 'url' ); ?>/#actual-day">
+	<div style="color:blue;font-weight:bold;font-size:16px;">Creando hijo de <?php echo $parent_title; ?></div>
+
+	<form id="new_post" name="new_post" method="post" action="<?php bloginfo( 'url' ); ?>/hijos/">
 
 		<input type="hidden" name="action" value="post" />
 		<?php wp_nonce_field( 'new-post' ); ?>
@@ -27,6 +35,9 @@
 <br />
 		<textarea name="posttext" id="posttext" rows="3" cols="60" tabindex="2" ></textarea>
 
+
+<?php if (!in_category('65')) :	?>
+							
 	<script>
            jQuery(document).ready(function() {
            jQuery( "#fecha" ).datepicker({ firstDay: 1 });
@@ -38,6 +49,7 @@
 
 			<?php if (!empty($fecha_entrega)) echo '<big><strong>'.$fecha_entrega.'</strong></big>'; ?>
 
+<?php endif; ?>
 			
 		<div style="float:left; width:600px;padding-left:200px;">	<label for="cats" id="tags">Categorías</label>
             <span style="padding-left: 20px;">  <?php wp_dropdown_categories( array(
@@ -53,19 +65,7 @@
                 )
             ); ?>
 	<?php //wp_dropdown_categories(array('hide_empty' => 0, 'hide_if_empty' => false, 'taxonomy' => $taxonomy, 'name' => 'parent', 'orderby' => 'name', 'hierarchical' => true, 'show_option_none' => __('None'))); ?>
-            <?php wp_dropdown_categories( array(
-                'hide_empty' => 0,
-                'hide_if_empty' => false,
-                'name' => 'proyecto',
-                'orderby' => 'name',
-                //'class' => 'catSelection',
-                'hierarchical' => 1,
-                'child_of' => $projects,
-                'show_option_none' => __('Proyecto'),
-                //'selected' => ,  // how to select default cat by default?
-                'tab_index' => 5
-                )
-            ); ?>
+            <span style="padding: 0 15px;"><?php echo $cat_name; ?></span>
             <?php wp_dropdown_categories( array(
                 'hide_empty' => 0,
                 'name' => 'usuario',
@@ -79,10 +79,13 @@
                 )
             ); ?></span>
 
-		<input type="hidden" name="fecha_entrega" value="<?php $fecha_entrega; ?>" />
+		<input type="hidden" name="cat_ID" value="<?php echo $cat_ID; ?>" />
+		<input type="hidden" name="cat_name" value="<?php echo $cat_name; ?>" />
+		<input type="hidden" name="post_parent" value="<?php echo $post_parent; ?>" />
+		<input type="hidden" name="action" value="crear_hijo" />
 		<input id="submit" type="submit" value="Publicar" style="margin-left: 20px;margin-bottom: 30px;margin-top:20px;" tabindex="8"/>
-	</form>
-</div></div> <!-- // postbox -->
+	</div></form>
+</div> <!-- // postbox -->
 </div><!-- // center -->
 <?php echo $post_category; ?>
 
